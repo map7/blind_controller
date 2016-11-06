@@ -16,7 +16,6 @@ Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 // to motor port #2 (M3 and M4)
 Adafruit_StepperMotor *myMotor = AFMS.getStepper(200, 2);
 
-
 void setup() {
   Serial.begin(9600);           // set up Serial library at 9600 bps
   Serial.println("Starting stepper motor test...");
