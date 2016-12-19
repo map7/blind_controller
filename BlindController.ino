@@ -1,6 +1,7 @@
 /* 
    Curtain Automation
-   Upload through emacs:
+   Compile through emacs: M-x compile make -k
+   Upload through emacs:  M-x compile make -k upload
 */
 
 
