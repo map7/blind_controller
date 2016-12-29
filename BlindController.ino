@@ -16,12 +16,12 @@ Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 
 // Define containts
 #define LIGHT_PIN 0
-#define LIGHT_THRESHOLD 800
+#define LIGHT_THRESHOLD 700
 #define DARK_THRESHOLD 400
 
 #define TEMP_PIN 1
-#define HOT_THRESHOLD 30
-#define COLD_THRESHOLD 27
+#define HOT_THRESHOLD 27
+#define COLD_THRESHOLD 25
 #define TEMP_VOLTAGE 5000
 
 #define ONBOARD_LED 13
