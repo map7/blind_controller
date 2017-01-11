@@ -4,8 +4,18 @@
    Upload through emacs:  M-x compile make -k upload
 */
 
+#include <Arduino.h>
+#include <U8g2lib.h>
 
+#ifdef U8X8_HAVE_HW_SPI
+#include <SPI.h>
+#endif
+#ifdef U8X8_HAVE_HW_I2C
 #include <Wire.h>
+#endif
+
+U8G2_ST7920_128X64_F_SW_SPI u8g2(U8G2_R0, /* clock=*/ 13, /* data=*/ 11, /* CS=*/ 10, /* reset=*/ 8);
+
 #include <Adafruit_MotorShield.h>
 #include "utility/Adafruit_MS_PWMServoDriver.h"
 
@@ -30,7 +40,11 @@ Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 // Set variables
 int curtain_state = 0; // 0 = closed, 1 = open
 int light_status = 0;
+char light_status_str[3];
+
 double temp_status = 0;
+int temp_reading = 0;
+char temp_reading_str[3];
 
 boolean daylight = true;
 boolean warm = false;
@@ -42,8 +56,10 @@ int up_btn = 2;
 Adafruit_StepperMotor *myMotor = AFMS.getStepper(100, 2);
 
 void setup() {
-  Serial.begin(9600);           // set up Serial library at 9600 bps
-  Serial.println("Setting up Curtain Automation...");
+  u8g2.begin();
+  
+  /* Serial.begin(9600);           // set up Serial library at 9600 bps */
+  /* Serial.println("Setting up Curtain Automation..."); */
 
   AFMS.begin();  // create with the default frequency 1.6KHz
   //AFMS.begin(1000);  // OR with a different frequency, say 1KHz
@@ -62,60 +78,58 @@ void Curtain(boolean curtain_state) {
   digitalWrite(ONBOARD_LED, curtain_state ? HIGH : LOW);
 
   if (curtain_state){
-    Serial.println("Opening curtain...");
+    /* Serial.println("Opening curtain..."); */
     // Try SINGLE, DOUBLE, INTERLEAVE or MICROSTOP
     myMotor->step(TRAVEL, BACKWARD, DOUBLE);
     myMotor->release();
   }else{
-    Serial.println("Closing curtain...");
+    /* Serial.println("Closing curtain..."); */
     myMotor->step(TRAVEL, FORWARD, DOUBLE);
     myMotor->release();
   }
 }
 
 void loop() {
-
-  // poll photocell value
+  // Get light value and convert to a char array
   light_status = analogRead(LIGHT_PIN);
-  delay(500);
+  sprintf(light_status_str, "%03i", light_status);
 
-  // print light_status value to Serial port
-  Serial.print("Photocell value = ");
-  Serial.println(light_status);
-  Serial.println("");
-
-  // poll temperature
-  int temp_reading = analogRead(TEMP_PIN);
-  delay(200);
- 
-  // DON'T do this ever, it's wrong, I don't know why!!!!
-  /* float voltage = temp_reading * (TEMP_VOLTAGE / 1024.0); */
-  
-  /* eg: 765mV - 500mV / 10 = 26.5 could be right */
-  /* http://www.instructables.com/id/Temperature-Sensor-Tutorial/ */
+  // Get temperature
+  temp_reading = analogRead(TEMP_PIN);
   float temp_voltage = temp_reading * 0.004882814;
-  //float temp_Celsius = (temp_reading - 500) / 10.0; //Wrong
   float temp_Celsius = (temp_voltage - 0.5) * 100.0;  
   float temp_Fahrenheit = (temp_Celsius * 9 / 5) + 32;
+  dtostrf(temp_Celsius, 2, 0, temp_reading_str);
 
-  /* // print temp_status value to the serial port */
-  /* Serial.print("Temperature reading (RAW)  = "); */
-  /* Serial.println(temp_reading); */
+  // Display to LCD
+  u8g2.clearBuffer();               // clear the internal memory
 
-  /* Serial.print("Temperature voltage = "); */
-  /* Serial.println(temp_voltage); */
+  u8g2.setDisplayRotation(U8G2_R2); // 180 degrees rotate
+  u8g2.setFlipMode(1);          // hardware flip
+
+  u8g2.setFont(u8g2_font_osr26_tn);	// choose font
+  u8g2.drawStr(0,45,"00:00");       // write text to memory
+
+  u8g2.setFont(u8g2_font_7x13B_tf);	// choose font
+
+  u8g2.drawStr(93,10,"Light");
+  u8g2.drawStr(106,23,light_status_str); 
   
-  Serial.print("Temperature value (Celsius)  = ");
-  Serial.println(temp_Celsius);
-  /* Serial.print("Temperature value (Fahrenheit) = "); */
-  /* Serial.println(temp_Fahrenheit); */
-  Serial.println("");
+  u8g2.drawStr(106,48,"TMP"); 
+  u8g2.drawStr(106,61,temp_reading_str); 
 
+  u8g2.setFont(u8g2_font_unifont_t_symbols);
+  u8g2.drawUTF8(94, 49, "☔");      // UTF8 characters ☀ ☁ ☂ ☔ 
+  
+  // transfer mem to display
+  u8g2.sendBuffer();               
+  delay(1000);
 
+  // Blind control
   switch (curtain_state){
   case 0: // Currently Closed
     if (light_status > LIGHT_THRESHOLD && temp_Celsius < COLD_THRESHOLD){
-      Serial.println("It's daytime and cold inside, open curtain");
+      /* Serial.println("It's daytime and cold inside, open curtain"); */
       curtain_state = 1;
       Curtain(curtain_state);      
     }
@@ -124,13 +138,13 @@ void loop() {
 
   case 1: // Currently Open
     if (light_status < DARK_THRESHOLD){
-      Serial.println("night time, close curtain");
+      /* Serial.println("night time, close curtain"); */
       curtain_state = 0;
       Curtain(curtain_state);
     }
 
     if (light_status > LIGHT_THRESHOLD && temp_Celsius > HOT_THRESHOLD){
-      Serial.println("It's hot outside and in, close curtain");
+      /* Serial.println("It's hot outside and in, close curtain"); */
       curtain_state = 0;
       Curtain(curtain_state);      
     }    
@@ -175,18 +189,18 @@ void loop() {
   }
 */
 
-  /* Test button */
-  if (digitalRead(up_btn) == HIGH){
-    if (curtain_state == 0){
-      Serial.println("Open...");
-      myMotor->step(TRAVEL, BACKWARD, DOUBLE);
-      myMotor->release();
-      curtain_state = 1;
-    }else{
-      Serial.println("Close...");
-      myMotor->step(TRAVEL, FORWARD, DOUBLE);  
-      myMotor->release();
-      curtain_state = 0;
-    }
-  }
+  /* /\* Test button *\/ */
+  /* if (digitalRead(up_btn) == HIGH){ */
+  /*   if (curtain_state == 0){ */
+  /*     /\* Serial.println("Open..."); *\/ */
+  /*     myMotor->step(TRAVEL, BACKWARD, DOUBLE); */
+  /*     myMotor->release(); */
+  /*     curtain_state = 1; */
+  /*   }else{ */
+  /*     /\* Serial.println("Close..."); *\/ */
+  /*     myMotor->step(TRAVEL, FORWARD, DOUBLE);   */
+  /*     myMotor->release(); */
+  /*     curtain_state = 0; */
+  /*   } */
+  /* } */
 }
