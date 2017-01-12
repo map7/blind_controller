@@ -40,6 +40,7 @@ Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 // Set variables
 int curtain_state = 0; // 0 = closed, 1 = open
 int light_status = 0;
+int light_status_int = 0;
 char light_status_str[3];
 
 double temp_status = 0;
@@ -58,8 +59,8 @@ Adafruit_StepperMotor *myMotor = AFMS.getStepper(100, 2);
 void setup() {
   u8g2.begin();
   
-  /* Serial.begin(9600);           // set up Serial library at 9600 bps */
-  /* Serial.println("Setting up Curtain Automation..."); */
+  Serial.begin(9600);           // set up Serial library at 9600 bps
+  Serial.println("Setting up Curtain Automation...");
 
   AFMS.begin();  // create with the default frequency 1.6KHz
   //AFMS.begin(1000);  // OR with a different frequency, say 1KHz
@@ -92,7 +93,8 @@ void Curtain(boolean curtain_state) {
 void loop() {
   // Get light value and convert to a char array
   light_status = analogRead(LIGHT_PIN);
-  sprintf(light_status_str, "%03i", light_status);
+  light_status_int = light_status;
+  sprintf(light_status_str, "%03i", light_status_int);
 
   // Get temperature
   temp_reading = analogRead(TEMP_PIN);
@@ -125,11 +127,15 @@ void loop() {
   u8g2.sendBuffer();               
   delay(1000);
 
+  // Display light_status & temp_Celsius in Serial
+  Serial.println(light_status);
+  Serial.println(temp_Celsius);
+  
   // Blind control
   switch (curtain_state){
   case 0: // Currently Closed
     if (light_status > LIGHT_THRESHOLD && temp_Celsius < COLD_THRESHOLD){
-      /* Serial.println("It's daytime and cold inside, open curtain"); */
+      Serial.println("It's daytime and cold inside, open curtain");
       curtain_state = 1;
       Curtain(curtain_state);      
     }
@@ -138,13 +144,13 @@ void loop() {
 
   case 1: // Currently Open
     if (light_status < DARK_THRESHOLD){
-      /* Serial.println("night time, close curtain"); */
+      Serial.println("night time, close curtain");
       curtain_state = 0;
       Curtain(curtain_state);
     }
 
     if (light_status > LIGHT_THRESHOLD && temp_Celsius > HOT_THRESHOLD){
-      /* Serial.println("It's hot outside and in, close curtain"); */
+      Serial.println("It's hot outside and in, close curtain");
       curtain_state = 0;
       Curtain(curtain_state);      
     }    
