@@ -39,18 +39,20 @@ Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 
 // Set variables
 int curtain_state = 0; // 0 = closed, 1 = open
+
+// Light variables
 int light_status = 0;
 int light_status_int = 0;
 char light_status_str[3];
 
+// Temperature variables
 double temp_status = 0;
 int temp_reading = 0;
 char temp_reading_str[3];
-
 boolean daylight = true;
 boolean warm = false;
 
-int up_btn = 2;
+
 
 // Connect a stepper motor with 100 steps per revolution (1.8 degree)
 // to motor port #2 (M3 and M4)
@@ -68,9 +70,6 @@ void setup() {
   // Set stepper motor rotation
   myMotor->setSpeed(30);
 
-  // Setup button
-  pinMode(up_btn, INPUT);
-  
   // Initialize motor
   delay(1000);
 }
