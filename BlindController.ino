@@ -83,12 +83,39 @@ void FlashLeds(int times) {
   }
 }
 
-void SetupLEDs(){
+void Curtain(boolean curtain_state) {
+  if (curtain_state){
+    digitalWrite(ledPins[0], HIGH);
+    digitalWrite(ledPins[1], LOW);
+
+    // Delay maybe could help freezing
+    delay(1000);
+    
+    /* Serial.println("Opening curtain..."); */
+    // Try SINGLE, DOUBLE, INTERLEAVE or MICROSTOP
+    myMotor->step(TRAVEL, BACKWARD, DOUBLE);
+    myMotor->release();
+  }else{
+    digitalWrite(ledPins[0], LOW);
+    digitalWrite(ledPins[1], HIGH);
+
+    // Delay maybe could help freezing
+    delay(1000);
+    
+    /* Serial.println("Closing curtain..."); */
+    myMotor->step(TRAVEL, FORWARD, DOUBLE);
+    myMotor->release();
+  }
+}
+
+void SetupButtons(){
   // Setup buttons
   for(int thisBtn=0; thisBtn<3; thisBtn++){
     pinMode(buttonPins[thisBtn], INPUT);
   }
+}
 
+void SetupLEDs(){
   // Setup LEDs
   for(int thisLed=0; thisLed<3; thisLed++){
     pinMode(ledPins[thisLed], OUTPUT);
@@ -119,7 +146,8 @@ void SetupSerial(){
 }
 
 void setup() {
-  SetupLEDs();                  /* LED & Buttons */
+  SetupLEDs();                  /* LED */
+  SetupButtons();               /* Buttons */  
   u8g2.begin();                 /* LCD */
   SetupSerial();                /* Serial */
   SetupMotor();                 /* Motor */
