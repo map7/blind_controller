@@ -34,7 +34,6 @@ Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 #define COLD_THRESHOLD 25
 #define TEMP_VOLTAGE 5000
 
-#define ONBOARD_LED 13
 #define TRAVEL 1400
 
 // Set variables
@@ -144,8 +143,6 @@ void GetTemperature(){
 }
 
 void Curtain(boolean curtain_state) {
-  digitalWrite(ONBOARD_LED, curtain_state ? HIGH : LOW);
-
   if (curtain_state){
     digitalWrite(ledPins[0], HIGH);
     digitalWrite(ledPins[1], LOW);
@@ -187,7 +184,7 @@ void DisplayInfo(){
   
   // transfer mem to display
   u8g2.sendBuffer();               
-  delay(500);
+  delay(1000);
   
   // Display light_status & temp_Celsius in Serial
   Serial.println(light_status);
