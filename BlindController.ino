@@ -56,6 +56,7 @@ boolean warm = false;
 // Buttons & LEDS
 int buttonPins[] = {2,3,4};
 int ledPins[] = {5,6,7};
+int auto_curtain = 0;  // 0 = manual, 1 = auto
 
 // Connect a stepper motor with 100 steps per revolution (1.8 degree)
 // to motor port #2 (M3 and M4)
@@ -115,6 +116,32 @@ void SetupButtons(){
   }
 }
 
+void ButtonActions(){
+
+  // Open
+  if (digitalRead(buttonPins[0]) == HIGH){
+    curtain_state = 1;
+    Curtain(curtain_state);    
+  }
+
+  // Close
+  if (digitalRead(buttonPins[1]) == HIGH){
+    curtain_state = 0;
+    Curtain(curtain_state);    
+  }
+
+  // Auto
+  if (digitalRead(buttonPins[2]) == HIGH){
+    if (auto_curtain == 1){
+      auto_curtain = 0;
+      digitalWrite(ledPins[2], LOW);
+    }else{
+      auto_curtain = 1;
+      digitalWrite(ledPins[2], HIGH);
+    }
+  }  
+}
+
 void SetupLEDs(){
   // Setup LEDs
   for(int thisLed=0; thisLed<3; thisLed++){
@@ -170,25 +197,6 @@ void GetTemperature(){
   dtostrf(temp_Celsius, 2, 0, temp_reading_str);
 }
 
-void Curtain(boolean curtain_state) {
-  if (curtain_state){
-    digitalWrite(ledPins[0], HIGH);
-    digitalWrite(ledPins[1], LOW);
-
-    /* Serial.println("Opening curtain..."); */
-    // Try SINGLE, DOUBLE, INTERLEAVE or MICROSTOP
-    myMotor->step(TRAVEL, BACKWARD, DOUBLE);
-    myMotor->release();
-  }else{
-    digitalWrite(ledPins[0], LOW);
-    digitalWrite(ledPins[1], HIGH);
-
-    /* Serial.println("Closing curtain..."); */
-    myMotor->step(TRAVEL, FORWARD, DOUBLE);
-    myMotor->release();
-  }
-}
-
 // Display to LCD
 void DisplayInfo(){
   u8g2.clearBuffer();               // clear the internal memory
@@ -222,6 +230,7 @@ void DisplayInfo(){
 void loop() {
 
   GetLight();
+  ButtonActions();
   GetTemperature();
   DisplayInfo();
   
