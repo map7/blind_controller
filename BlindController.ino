@@ -46,24 +46,63 @@ int light_status_int = 0;
 char light_status_str[3];
 
 // Temperature variables
+float temp_Celsius;
+float temp_Fahrenheit;
 double temp_status = 0;
 int temp_reading = 0;
 char temp_reading_str[3];
 boolean daylight = true;
 boolean warm = false;
 
-
+// Buttons & LEDS
+int buttonPins[] = {2,3,4};
+int ledPins[] = {5,6,7};
 
 // Connect a stepper motor with 100 steps per revolution (1.8 degree)
 // to motor port #2 (M3 and M4)
 Adafruit_StepperMotor *myMotor = AFMS.getStepper(100, 2);
 
-void setup() {
-  u8g2.begin();
-  
-  Serial.begin(9600);           // set up Serial library at 9600 bps
-  Serial.println("Setting up Curtain Automation...");
+void AllLedsOn(){
+  for(int thisLed=0; thisLed<3; thisLed++){
+    digitalWrite(ledPins[thisLed], HIGH);
+  }
+}
 
+// Reset all LEDs to low
+void AllLedsOff(){
+  for(int thisLed=0; thisLed<3; thisLed++){
+    digitalWrite(ledPins[thisLed], LOW);
+  }
+}
+
+void FlashLeds(int times) {
+  for(int current=0; current<times; current++){
+    AllLedsOn();
+    delay(150);
+    AllLedsOff();
+    delay(150);
+  }
+}
+
+void SetupLEDs(){
+  // Setup buttons
+  for(int thisBtn=0; thisBtn<3; thisBtn++){
+    pinMode(buttonPins[thisBtn], INPUT);
+  }
+
+  // Setup LEDs
+  for(int thisLed=0; thisLed<3; thisLed++){
+    pinMode(ledPins[thisLed], OUTPUT);
+    digitalWrite(ledPins[thisLed], HIGH);
+    delay(300);
+  }
+
+  // Do a little dance
+  FlashLeds(3);
+  delay(300);
+}
+
+void SetupMotor(){
   AFMS.begin();  // create with the default frequency 1.6KHz
   //AFMS.begin(1000);  // OR with a different frequency, say 1KHz
 
@@ -74,35 +113,59 @@ void setup() {
   delay(1000);
 }
 
+void SetupSerial(){
+  // Setup serial
+  Serial.begin(9600);           // set up Serial library at 9600 bps
+  Serial.println("Setting up Curtain Automation...");
+}
+
+void setup() {
+  SetupLEDs();                  /* LED & Buttons */
+  u8g2.begin();                 /* LCD */
+  SetupSerial();                /* Serial */
+  SetupMotor();                 /* Motor */
+  digitalWrite(ledPins[1], HIGH); /* Show status Closed */
+}
+
+void GetLight(){
+  // Get light value and convert to a char array
+  light_status = analogRead(LIGHT_PIN);
+  light_status_int = light_status;
+  sprintf(light_status_str, "%03i", light_status_int);
+}
+
+void GetTemperature(){
+  // Get temperature
+  temp_reading = analogRead(TEMP_PIN);
+  float temp_voltage = temp_reading * 0.004882814;
+  temp_Celsius = (temp_voltage - 0.5) * 100.0;  
+  temp_Fahrenheit = (temp_Celsius * 9 / 5) + 32;
+  dtostrf(temp_Celsius, 2, 0, temp_reading_str);
+}
+
 void Curtain(boolean curtain_state) {
   digitalWrite(ONBOARD_LED, curtain_state ? HIGH : LOW);
 
   if (curtain_state){
+    digitalWrite(ledPins[0], HIGH);
+    digitalWrite(ledPins[1], LOW);
+
     /* Serial.println("Opening curtain..."); */
     // Try SINGLE, DOUBLE, INTERLEAVE or MICROSTOP
     myMotor->step(TRAVEL, BACKWARD, DOUBLE);
     myMotor->release();
   }else{
+    digitalWrite(ledPins[0], LOW);
+    digitalWrite(ledPins[1], HIGH);
+
     /* Serial.println("Closing curtain..."); */
     myMotor->step(TRAVEL, FORWARD, DOUBLE);
     myMotor->release();
   }
 }
 
-void loop() {
-  // Get light value and convert to a char array
-  light_status = analogRead(LIGHT_PIN);
-  light_status_int = light_status;
-  sprintf(light_status_str, "%03i", light_status_int);
-
-  // Get temperature
-  temp_reading = analogRead(TEMP_PIN);
-  float temp_voltage = temp_reading * 0.004882814;
-  float temp_Celsius = (temp_voltage - 0.5) * 100.0;  
-  float temp_Fahrenheit = (temp_Celsius * 9 / 5) + 32;
-  dtostrf(temp_Celsius, 2, 0, temp_reading_str);
-
-  // Display to LCD
+// Display to LCD
+void DisplayInfo(){
   u8g2.clearBuffer();               // clear the internal memory
 
   u8g2.setDisplayRotation(U8G2_R2); // 180 degrees rotate
@@ -124,11 +187,18 @@ void loop() {
   
   // transfer mem to display
   u8g2.sendBuffer();               
-  delay(1000);
-
+  delay(500);
+  
   // Display light_status & temp_Celsius in Serial
   Serial.println(light_status);
   Serial.println(temp_Celsius);
+}
+
+void loop() {
+
+  GetLight();
+  GetTemperature();
+  DisplayInfo();
   
   // Blind control
   switch (curtain_state){
@@ -157,43 +227,11 @@ void loop() {
     break;
   }
 
-
-/*
-  if (light_status > LIGHT_THRESHOLD){
-    Serial.println("Daylight true");
-    daylight = true;
-  } else{
-    Serial.println("Daylight false");
-    daylight = false;
-  }
+  // Show aliveness
+  digitalWrite(ledPins[2], HIGH);
+  delay(500);
+  digitalWrite(ledPins[2], LOW);
   
-  if (temp_Celsius > TEMP_THRESHOLD) {
-    Serial.println("Warm true");
-    warm = true;
-  } else {
-    Serial.println("Warm false");
-    warm = false;
-  }
- 
-  switch (curtain_state){
-  case 0:
-    // if we have light and it's cold inside, open curtain
-    if (daylight && !warm){
-      curtain_state = 1;
-      Curtain(curtain_state);
-    }
-    break;
-
-  case 1:
-    // if it's night and it is warm, close curtain
-    if (!daylight && warm){
-      curtain_state = 0;
-      Curtain(curtain_state);
-    }
-    break;
-  }
-*/
-
   /* /\* Test button *\/ */
   /* if (digitalRead(up_btn) == HIGH){ */
   /*   if (curtain_state == 0){ */
