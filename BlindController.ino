@@ -233,38 +233,40 @@ void loop() {
   ButtonActions();
   GetTemperature();
   DisplayInfo();
-  
-  // Blind control
-  switch (curtain_state){
-  case 0: // Currently Closed
-    if (light_status > LIGHT_THRESHOLD && temp_Celsius < COLD_THRESHOLD){
-      Serial.println("It's daytime and cold inside, open curtain");
-      curtain_state = 1;
-      Curtain(curtain_state);      
-    }
-  
-    break;
 
-  case 1: // Currently Open
-    if (light_status < DARK_THRESHOLD){
-      Serial.println("night time, close curtain");
-      curtain_state = 0;
-      Curtain(curtain_state);
-    }
-
-    if (light_status > LIGHT_THRESHOLD && temp_Celsius > HOT_THRESHOLD){
-      Serial.println("It's hot outside and in, close curtain");
-      curtain_state = 0;
-      Curtain(curtain_state);      
-    }    
+  if (auto_curtain == 1){
+    // Blind control
+    switch (curtain_state){
+    case 0: // Currently Closed
+      if (light_status > LIGHT_THRESHOLD && temp_Celsius < COLD_THRESHOLD){
+        Serial.println("It's daytime and cold inside, open curtain");
+        curtain_state = 1;
+        Curtain(curtain_state);      
+      }
   
-    break;
+      break;
+
+    case 1: // Currently Open
+      if (light_status < DARK_THRESHOLD){
+        Serial.println("night time, close curtain");
+        curtain_state = 0;
+        Curtain(curtain_state);
+      }
+
+      if (light_status > LIGHT_THRESHOLD && temp_Celsius > HOT_THRESHOLD){
+        Serial.println("It's hot outside and in, close curtain");
+        curtain_state = 0;
+        Curtain(curtain_state);      
+      }    
+  
+      break;
+    }
   }
-
-  // Show aliveness
-  digitalWrite(ledPins[2], HIGH);
-  delay(500);
-  digitalWrite(ledPins[2], LOW);
+  
+  /* // Show aliveness */
+  /* digitalWrite(ledPins[2], HIGH); */
+  /* delay(500); */
+  /* digitalWrite(ledPins[2], LOW); */
   
   /* /\* Test button *\/ */
   /* if (digitalRead(up_btn) == HIGH){ */
